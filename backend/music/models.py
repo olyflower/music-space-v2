@@ -7,7 +7,7 @@ class Track(models.Model):
     artist = models.CharField(max_length=255)
     album = models.CharField(max_length=255, blank=True)
     duration_ms = models.IntegerField()
-    preview_url = models.URLField(blank=True, null=True)
+    spotify_url = models.URLField()
     cover_url = models.URLField(blank=True, null=True)
     added_at = models.DateTimeField(auto_now_add=True)
 
