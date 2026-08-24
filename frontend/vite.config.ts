@@ -1,3 +1,5 @@
+import tailwindcss from '@tailwindcss/vite'
+
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
@@ -11,6 +13,7 @@ export default defineConfig({
     vue(),
     vueJsx(),
     vueDevTools(),
+    tailwindcss(),
   ],
   resolve: {
     alias: {
