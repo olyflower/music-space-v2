@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import axios from "axios";
 
 interface Track {
 	spotify_id: string;
@@ -23,11 +24,9 @@ async function searchTracks() {
 	error.value = "";
 
 	try {
-		const response = await fetch(
-			`http://localhost:8000/api/search/?q=${encodeURIComponent(query.value)}`,
-		);
-		if (!response.ok) throw new Error("Search failed");
-		const data = await response.json();
+		const { data } = await axios.get("http://localhost:8000/api/search/", {
+			params: { q: query.value },
+		});
 		tracks.value = data.results;
 	} catch (e) {
 		error.value = "Something went wrong. Try again.";
