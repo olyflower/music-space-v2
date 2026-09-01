@@ -147,3 +147,9 @@ REST_FRAMEWORK = {
         "account.authentication.JWTAuthenticationCustom",
     ],
 }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}

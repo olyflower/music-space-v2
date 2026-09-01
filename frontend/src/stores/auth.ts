@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export const useAuthStore = defineStore("auth", () => {
 	const userEmail = ref<string | null>(null);
@@ -36,13 +36,13 @@ export const useAuthStore = defineStore("auth", () => {
 	}
 
 	async function logout() {
+		userEmail.value = null;
+		userName.value = null;
 		await axios.post(
 			`${API_BASE}/auth/logout/`,
 			{},
 			{ withCredentials: true },
 		);
-		userEmail.value = null;
-		userName.value = null;
 	}
 
 	return {

@@ -1,5 +1,6 @@
 import requests
 from decouple import config
+from django.core.cache import cache
 
 SPOTIFY_CLIENT_ID = config("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = config("SPOTIFY_CLIENT_SECRET")
@@ -9,6 +10,11 @@ SEARCH_URL = "https://api.spotify.com/v1/search"
 
 
 def get_access_token():
+    token = cache.get("spotify_access_token")
+
+    if token:
+        return token
+
     response = requests.post(
         TOKEN_URL,
         data={
@@ -16,9 +22,18 @@ def get_access_token():
             "client_id": SPOTIFY_CLIENT_ID,
             "client_secret": SPOTIFY_CLIENT_SECRET,
         },
+        timeout=5,
     )
     response.raise_for_status()
-    return response.json()["access_token"]
+
+    data = response.json()
+    token = data["access_token"]
+
+    cache.set(
+        "spotify_access_token", token, timeout=max(data.get("expires_in", 3600) - 60, 1)
+    )
+
+    return token
 
 
 def search_tracks(query, limit=10):
@@ -31,6 +46,7 @@ def search_tracks(query, limit=10):
             "type": "track",
             "limit": limit,
         },
+        timeout=5,
     )
     response.raise_for_status()
     return response.json()

@@ -1,12 +1,12 @@
 from django.contrib.auth.models import User
-from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from django.conf import settings
+from .serializers import UserSerializer
 
 
 @api_view(["POST"])
@@ -33,20 +33,13 @@ def google_login(request):
     refresh = RefreshToken.for_user(user)
     access_token = str(refresh.access_token)
 
-    response = Response(
-        {
-            "user": {
-                "email": user.email,
-                "name": user.first_name,
-            }
-        }
-    )
+    response = Response({"user": UserSerializer(user).data})
 
     response.set_cookie(
         key="access_token",
         value=access_token,
         httponly=True,
-        secure=False,
+        secure=not settings.DEBUG,
         samesite="Lax",
         max_age=60 * 60 * 24,
     )
@@ -54,7 +47,7 @@ def google_login(request):
         key="refresh_token",
         value=str(refresh),
         httponly=True,
-        secure=False,
+        secure=not settings.DEBUG,
         samesite="Lax",
         max_age=60 * 60 * 24 * 30,
     )
@@ -71,20 +64,6 @@ def logout_view(request):
 
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def me_view(request):
-    token = request.COOKIES.get("access_token")
-    if not token:
-        return Response({"error": "Not authenticated"}, status=401)
-
-    try:
-        validated_token = JWTAuthentication().get_validated_token(token)
-        user = JWTAuthentication().get_user(validated_token)
-    except InvalidToken:
-        return Response({"error": "Invalid token"}, status=401)
-
-    return Response(
-        {
-            "email": user.email,
-            "name": user.first_name,
-        }
-    )
+    return Response(UserSerializer(request.user).data)
