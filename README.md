@@ -1,5 +1,7 @@
 # Music Space
 
+![Music Space](screenshots/home.png)
+
 A music discovery app built with Vue, TypeScript, Django and Spotify API.
 
 ## Features
