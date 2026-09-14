@@ -1,18 +1,9 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import axios from "axios";
+import type { Track } from "@/types/track";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-interface Track {
-	spotify_id: string;
-	title: string;
-	artist: string;
-	album: string;
-	duration_ms: number;
-	cover_url: string | null;
-	spotify_url: string;
-}
 
 export const useFavoritesStore = defineStore("favorites", () => {
 	const tracks = ref<Track[]>([]);

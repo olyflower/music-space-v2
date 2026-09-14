@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
+import { useSearchStore } from "@/stores/search";
+import { useFavoritesStore } from "@/stores/favorites";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
@@ -36,8 +38,15 @@ export const useAuthStore = defineStore("auth", () => {
 	}
 
 	async function logout() {
+		const searchStore = useSearchStore();
+		const favoritesStore = useFavoritesStore();
+
+		searchStore.resetSearch();
+		favoritesStore.reset();
+
 		userEmail.value = null;
 		userName.value = null;
+
 		await axios.post(
 			`${API_BASE}/auth/logout/`,
 			{},

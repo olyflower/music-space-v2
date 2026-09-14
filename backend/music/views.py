@@ -16,17 +16,23 @@ def add_favorite(request):
             status=400,
         )
 
-    serializer = TrackSerializer(data=track_data)
+    spotify_id = track_data.get("spotify_id")
 
-    if not serializer.is_valid():
-        return Response(serializer.errors, status=400)
+    if not spotify_id:
+        return Response(
+            {"error": "spotify_id is required"},
+            status=400,
+        )
 
-    validated_data = serializer.validated_data
+    track = Track.objects.filter(spotify_id=spotify_id).first()
 
-    track, _ = Track.objects.get_or_create(
-        spotify_id=validated_data["spotify_id"],
-        defaults=validated_data,
-    )
+    if track is None:
+        serializer = TrackSerializer(data=track_data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        track = serializer.save()
 
     favorite, created = FavoriteTrack.objects.get_or_create(
         user=request.user,

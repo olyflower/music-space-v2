@@ -1,62 +1,34 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { useFavoritesStore } from "@/stores/favorites";
+import { useSearchStore } from "@/stores/search";
 import HeroDecorations from "@/components/HeroDecorations.vue";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
-
-interface Track {
-	spotify_id: string;
-	title: string;
-	artist: string;
-	album: string;
-	duration_ms: number;
-	cover_url: string | null;
-	spotify_url: string;
-}
-
-const query = ref("");
-const tracks = ref<Track[]>([]);
-const loading = ref(false);
-const error = ref("");
+import type { Track } from "@/types/track";
+import { toast } from "vue3-toastify";
+import { features } from "@/data/home";
 
 const auth = useAuthStore();
+const search = useSearchStore();
 const favorites = useFavoritesStore();
-
-async function searchTracks() {
-	if (!query.value.trim()) return;
-
-	loading.value = true;
-	error.value = "";
-
-	try {
-		const { data } = await axios.get(`${API_BASE}/search/`, {
-			params: { q: query.value },
-		});
-		tracks.value = data.results;
-	} catch (e) {
-		error.value = "Something went wrong. Try again.";
-	} finally {
-		loading.value = false;
-	}
-}
 
 async function toggleFavorite(track: Track) {
 	if (!auth.userEmail) {
-		alert("Please sign in to save favorites");
+		toast.error("Please sign in to save favorites");
 		return;
 	}
 
 	try {
-		if (favorites.favoriteIds.has(track.spotify_id)) {
+		const isFavorite = favorites.favoriteIds.has(track.spotify_id);
+
+		if (isFavorite) {
 			await favorites.removeFavorite(track.spotify_id);
+			toast.success("Removed from favorites");
 		} else {
 			await favorites.addFavorite(track);
+			toast.success("Added to favorites");
 		}
-	} catch (e) {
-		alert("Something went wrong");
+	} catch {
+		toast.error("Something went wrong");
 	}
 }
 </script>
@@ -92,12 +64,12 @@ async function toggleFavorite(track: Track) {
 					class="mx-auto mt-7 max-w-2xl text-sm leading-6 text-muted sm:text-base sm:leading-7"
 				>
 					Search artists, tracks and albums. Save the music you want
-					to come back to.
+					to come back to
 				</p>
 
 				<!-- SEARCH -->
 				<form
-					@submit.prevent="searchTracks"
+					@submit.prevent="search.searchTracks"
 					class="mx-auto mt-9 flex w-full max-w-2xl items-center rounded-2xl border border-border bg-white p-1.5 transition focus-within:border-accent/50"
 				>
 					<svg
@@ -112,20 +84,20 @@ async function toggleFavorite(track: Track) {
 					</svg>
 
 					<input
-						v-model="query"
+						v-model="search.query"
 						type="text"
 						name="music-search"
-						autocomplete="on"
+						autocomplete="off"
 						placeholder="Search for a track or artist..."
 						class="min-w-0 flex-1 bg-transparent px-3 py-4 text-sm outline-none placeholder:text-muted"
 					/>
 
 					<button
 						type="submit"
-						:disabled="loading"
-						class="shrink-0 rounded-xl bg-ink px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-accent disabled:cursor-wait disabled:opacity-60"
+						:disabled="search.loading || !search.query.trim()"
+						class="shrink-0 rounded-xl bg-ink px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
 					>
-						{{ loading ? "Searching..." : "Search" }}
+						{{ search.loading ? "Searching..." : "Search" }}
 					</button>
 				</form>
 
@@ -133,51 +105,22 @@ async function toggleFavorite(track: Track) {
 				<div
 					class="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-10 sm:grid-cols-3 sm:gap-6"
 				>
-					<div>
+					<div v-for="feature in features" :key="feature.title">
 						<div
-							class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl text-accent"
+							class="mx-auto flex h-14 w-14 items-center justify-center rounded-full text-2xl"
+							:class="[feature.background, feature.color]"
 						>
-							♫
+							{{ feature.icon }}
 						</div>
 
-						<h3 class="mt-4 text-sm font-bold">Search</h3>
+						<h3 class="mt-4 text-sm font-bold">
+							{{ feature.title }}
+						</h3>
 
 						<p
 							class="mx-auto mt-2 max-w-45 text-xs leading-5 text-muted sm:text-sm sm:leading-6"
 						>
-							Find your favorite artists, tracks and albums.
-						</p>
-					</div>
-
-					<div>
-						<div
-							class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-2xl text-accent"
-						>
-							♡
-						</div>
-
-						<h3 class="mt-4 text-sm font-bold">Save</h3>
-
-						<p
-							class="mx-auto mt-2 max-w-45 text-xs leading-5 text-muted sm:text-sm sm:leading-6"
-						>
-							Keep the music you love in one place.
-						</p>
-					</div>
-
-					<div>
-						<div
-							class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-purple/10 text-2xl text-purple"
-						>
-							✦
-						</div>
-
-						<h3 class="mt-4 text-sm font-bold">Discover</h3>
-
-						<p
-							class="mx-auto mt-2 max-w-45 text-xs leading-5 text-muted sm:text-sm sm:leading-6"
-						>
-							Explore new music for every mood.
+							{{ feature.description }}
 						</p>
 					</div>
 				</div>
@@ -186,17 +129,16 @@ async function toggleFavorite(track: Track) {
 
 		<!-- RESULTS -->
 		<section class="mx-auto max-w-5xl px-5 pb-20 sm:px-8 lg:px-12">
-			<p v-if="error" class="py-8 text-center text-sm text-accent">
-				{{ error }}
-			</p>
-
-			<p v-if="loading" class="py-8 text-center text-sm text-muted">
+			<p
+				v-if="search.loading"
+				class="py-8 text-center text-sm text-muted"
+			>
 				Searching for music...
 			</p>
 
 			<!-- EMPTY STATE -->
 			<div
-				v-if="!loading && !tracks.length && !error"
+				v-if="!search.loading && !search.tracks.length"
 				class="pb-16 pt-4 text-center"
 			>
 				<h2 class="text-lg font-semibold">
@@ -205,12 +147,12 @@ async function toggleFavorite(track: Track) {
 
 				<p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted">
 					Search for an artist, song or album to start discovering
-					music.
+					music
 				</p>
 			</div>
 
 			<!-- TRACKS -->
-			<div v-if="tracks.length">
+			<div v-if="search.tracks.length">
 				<div class="mb-6">
 					<p
 						class="text-[11px] font-bold uppercase tracking-[0.25em] text-accent"
@@ -219,7 +161,7 @@ async function toggleFavorite(track: Track) {
 					</p>
 
 					<h2 class="mt-2 text-2xl font-bold tracking-tight">
-						Results for "{{ query }}"
+						Results for "{{ search.query }}"
 					</h2>
 				</div>
 
@@ -227,7 +169,7 @@ async function toggleFavorite(track: Track) {
 					class="overflow-hidden rounded-2xl border border-border bg-white shadow-sm"
 				>
 					<li
-						v-for="track in tracks"
+						v-for="track in search.tracks"
 						:key="track.spotify_id"
 						class="group flex items-center gap-4 border-b border-border p-3 last:border-b-0 sm:p-4"
 					>
