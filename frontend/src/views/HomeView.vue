@@ -159,10 +159,6 @@ async function toggleFavorite(track: Track) {
 					>
 						SEARCH RESULTS
 					</p>
-
-					<h2 class="mt-2 text-2xl font-bold tracking-tight">
-						Results for "{{ search.query }}"
-					</h2>
 				</div>
 
 				<ul
